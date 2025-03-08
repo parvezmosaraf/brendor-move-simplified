@@ -13,6 +13,9 @@ import Contact from "./pages/Contact";
 import About from "./pages/About";
 import ExploreServices from "./pages/ExploreServices";
 import Pricing from "./pages/Pricing";
+import CustomerDashboard from "./pages/dashboard/CustomerDashboard";
+import AgentDashboard from "./pages/dashboard/AgentDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +34,22 @@ const App = () => (
           <Route path="/about" element={<About />} />
           <Route path="/services" element={<ExploreServices />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route 
+            path="/customer/dashboard" 
+            element={
+              <ProtectedRoute userType="customer">
+                <CustomerDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/agent/dashboard" 
+            element={
+              <ProtectedRoute userType="agent">
+                <AgentDashboard />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

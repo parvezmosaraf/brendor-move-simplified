@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Check, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from "sonner";
 import Layout from '@/components/Layout';
+import { supabase } from '@/integrations/supabase/client';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -19,6 +20,28 @@ const Signup = () => {
   const [userType, setUserType] = useState('customer');
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        // Get user profile to determine redirect
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', data.session.user.id)
+          .single();
+          
+        if (profileData) {
+          // Redirect to appropriate dashboard
+          navigate(`/${profileData.user_type}/dashboard`);
+        }
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,23 +54,34 @@ const Signup = () => {
     setIsLoading(true);
     
     try {
-      // Simulated signup - will be replaced with actual auth
-      setTimeout(() => {
-        toast.success("Account created successfully!");
-        
-        // Redirect based on user type
-        if (userType === 'customer') {
-          navigate('/customer/dashboard');
-        } else {
-          navigate('/agent/dashboard');
+      // Sign up the user
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            phone,
+            userType
+          }
         }
-        
-        setIsLoading(false);
-      }, 1500);
-    } catch (error) {
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Account created successfully!");
+      
+      // Redirect based on user type
+      if (userType === 'customer') {
+        navigate('/customer/dashboard');
+      } else {
+        navigate('/agent/dashboard');
+      }
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      toast.error(error.message || "Registration failed. Please try again.");
+    } finally {
       setIsLoading(false);
-      toast.error("Registration failed. Please try again.");
-      console.error(error);
     }
   };
 
