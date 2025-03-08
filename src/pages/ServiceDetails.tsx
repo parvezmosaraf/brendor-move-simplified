@@ -1,8 +1,14 @@
 
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Package, Plane, Users, MapPin, CreditCard, ArrowRight, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Package, Plane, Users, MapPin, CreditCard, ArrowRight, Clock, CheckCircle, AlertCircle, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 import Layout from '@/components/Layout';
 import { toast } from "sonner";
 
@@ -66,6 +72,13 @@ const vehicleTypes = [
   { id: 'van', name: 'Van', surcharge: 30, capacity: 'Up to 8 suitcases' }
 ];
 
+// Time slots for pickup scheduling
+const timeSlots = [
+  '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
+  '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM',
+  '06:00 PM', '07:00 PM', '08:00 PM'
+];
+
 const ServiceDetails = () => {
   const { serviceType } = useParams<{ serviceType: 'parcel-delivery' | 'airport-pickup' | 'student-pickup' }>();
   const service = serviceType ? services[serviceType] : null;
@@ -78,7 +91,10 @@ const ServiceDetails = () => {
   const [vehicleType, setVehicleType] = useState('sedan');
   const [price, setPrice] = useState<number | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [showBookingForm, setShowBookingForm] = useState(false);
+  
+  // New state for schedule pickup
+  const [scheduleDate, setScheduleDate] = useState<Date | undefined>(undefined);
+  const [scheduleTime, setScheduleTime] = useState<string | undefined>(undefined);
   
   if (!service) {
     return (
@@ -134,14 +150,22 @@ const ServiceDetails = () => {
   };
   
   const handleBook = () => {
+    if (!scheduleDate || !scheduleTime) {
+      toast.error("Please select a pickup date and time");
+      return;
+    }
+    
     // This would be connected to actual booking logic
-    toast.success("Booking successful! An agent will contact you shortly.");
+    toast.success(`Booking successful! Your ${service.title} is scheduled for ${format(scheduleDate, 'EEEE, MMMM d, yyyy')} at ${scheduleTime}. An agent will contact you shortly.`);
     
     // Redirect to dashboard would happen here in a real app
     setTimeout(() => {
       window.location.href = '/customer/dashboard';
     }, 2000);
   };
+  
+  // Determine if the booking button should be disabled
+  const isBookingDisabled = !scheduleDate || !scheduleTime || price === null;
   
   return (
     <Layout>
@@ -222,6 +246,57 @@ const ServiceDetails = () => {
                           onChange={(e) => setDestination(e.target.value)}
                         />
                       </div>
+                    </div>
+                  </div>
+                  
+                  {/* Schedule Pickup Date and Time */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <Label className="block text-sm font-medium mb-2">Pickup Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full pl-3 text-left font-normal border border-gray-200 rounded-xl h-[50px] focus:border-brendor-400 focus:ring focus:ring-brendor-100",
+                              !scheduleDate && "text-muted-foreground"
+                            )}
+                          >
+                            {scheduleDate ? (
+                              format(scheduleDate, "EEEE, MMMM d, yyyy")
+                            ) : (
+                              <span>Select pickup date</span>
+                            )}
+                            <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={scheduleDate}
+                            onSelect={setScheduleDate}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    
+                    <div>
+                      <Label className="block text-sm font-medium mb-2">Pickup Time</Label>
+                      <select
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-brendor-400 focus:ring focus:ring-brendor-100 transition"
+                        value={scheduleTime || ""}
+                        onChange={(e) => setScheduleTime(e.target.value)}
+                      >
+                        <option value="" disabled>Select pickup time</option>
+                        {timeSlots.map((time) => (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                   
@@ -319,6 +394,20 @@ const ServiceDetails = () => {
                           <span className="font-medium">{distance} km</span>
                         </div>
                         
+                        {scheduleDate && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Pickup Date:</span>
+                            <span className="font-medium">{format(scheduleDate, 'EEEE, MMMM d, yyyy')}</span>
+                          </div>
+                        )}
+                        
+                        {scheduleTime && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Pickup Time:</span>
+                            <span className="font-medium">{scheduleTime}</span>
+                          </div>
+                        )}
+                        
                         {service.requiresWeight && weight !== null && (
                           <div className="flex justify-between">
                             <span className="text-gray-600">Parcel Weight:</span>
@@ -353,8 +442,12 @@ const ServiceDetails = () => {
                       <Button
                         onClick={handleBook}
                         className="w-full mt-6 py-6 h-auto bg-brendor-600 hover:bg-brendor-700 text-white rounded-xl"
+                        disabled={isBookingDisabled}
                       >
-                        Book Now
+                        {isBookingDisabled ? 
+                          "Please select date and time" : 
+                          `Schedule Pickup for ${scheduleDate ? format(scheduleDate, 'MMM d') : ''} at ${scheduleTime || ''}`
+                        }
                       </Button>
                       
                       <p className="text-xs text-center text-gray-500 mt-3">
