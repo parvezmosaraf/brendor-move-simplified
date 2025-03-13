@@ -5,10 +5,12 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Car, Calendar, Clock, MapPin, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const CustomerDashboard = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const getProfile = async () => {
@@ -35,6 +37,11 @@ const CustomerDashboard = () => {
 
     getProfile();
   }, []);
+
+  // Function to navigate to service selection page
+  const handleBookNewService = () => {
+    navigate('/services');
+  };
 
   // Mock data for upcoming bookings
   const upcomingBookings = [
@@ -134,7 +141,10 @@ const CustomerDashboard = () => {
           <div className="bg-white p-6 rounded-xl shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Upcoming Bookings</h3>
-              <Button className="bg-brendor-600 hover:bg-brendor-700">
+              <Button 
+                className="bg-brendor-600 hover:bg-brendor-700"
+                onClick={handleBookNewService}
+              >
                 <PlusCircle size={16} className="mr-2" />
                 Book New Service
               </Button>
@@ -178,7 +188,10 @@ const CustomerDashboard = () => {
             ) : (
               <div className="text-center py-8">
                 <p className="text-gray-500">No upcoming bookings</p>
-                <Button className="mt-4 bg-brendor-600 hover:bg-brendor-700">
+                <Button 
+                  className="mt-4 bg-brendor-600 hover:bg-brendor-700"
+                  onClick={handleBookNewService}
+                >
                   Book Your First Service
                 </Button>
               </div>
@@ -191,7 +204,11 @@ const CustomerDashboard = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {serviceRecommendations.map((service) => (
-                <div key={service.id} className="border border-gray-200 p-4 rounded-lg hover:bg-brendor-50 transition cursor-pointer">
+                <div 
+                  key={service.id} 
+                  className="border border-gray-200 p-4 rounded-lg hover:bg-brendor-50 transition cursor-pointer"
+                  onClick={handleBookNewService}
+                >
                   <div className="flex items-start">
                     <div className="p-2 rounded-full bg-brendor-100 text-brendor-700">
                       <service.icon size={16} />
